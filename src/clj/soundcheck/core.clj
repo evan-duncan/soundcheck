@@ -1,9 +1,9 @@
 (ns soundcheck.core
   (:require
     [soundcheck.handler :as handler]
+    [soundcheck.ws :as ws]
     [soundcheck.nrepl :as nrepl]
     [luminus.http-server :as http]
-    [luminus.ws :as ws]
     [luminus-migrations.core :as migrations]
     [soundcheck.config :refer [env]]
     [clojure.tools.cli :refer [parse-opts]]
@@ -28,20 +28,8 @@
   (http/start
     (-> env
         (assoc  :handler (handler/app))
+        (assoc  :ws-handler ws/handler)
         (update :port #(or (-> env :options :port) %))
-        (assoc  :ws-handler {:context-path "/ws"
-                            :allow-null-path-info? false
-                            :on-connect (fn [ws]
-                                          (log/info "WS Connect" ws))
-                            :on-error (fn [ws e]
-                                        (log/info "WS Error" e))
-                            :on-text (fn [ws text]
-                                       (log/info "Text:" text)
-                                       (ws/send! ws text))
-                            :on-close (fn [ws status-code reason]
-                                        (log/info "WS Close" reason))
-                            :on-bytes (fn [ws bytes offset len]
-                                        (log/info "WS Bytes" bytes))})
         (select-keys [:handler :host :port :ws-handler])))
   :stop
   (http/stop http-server))
